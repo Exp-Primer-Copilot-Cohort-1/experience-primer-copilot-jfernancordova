@@ -6,9 +6,10 @@
 // http://localhost:3000/comments/3, it should display the comments
 // for article 3.
 
-const express = require('express');
+import express from 'express';
+import comments from '../data/comments.js';
+
 const router = express.Router();
-const comments = require('../data/comments');
 
 // GET /comments - responds with a json array of comments
 router.get('/', (req, res) => {
@@ -52,4 +53,8 @@ router.put('/:id', (req, res) => {
       }
     });
   } else {
-    res.status(400).json({ msg: `No comment with the id of
+    res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
+  }
+});
+
+export default router;
