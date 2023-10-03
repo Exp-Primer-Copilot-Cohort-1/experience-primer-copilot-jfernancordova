@@ -1,60 +1,99 @@
-// Create a web server that can respond to requests for comments
-// to specific articles. For example, if you navigate to
-// http://localhost:3000/comments/1, it should display the comments
-// for article 1. If you navigate to http://localhost:3000/comments/2,
-// it should display the comments for article 2. If you navigate to
-// http://localhost:3000/comments/3, it should display the comments
-// for article 3.
+// Create web server with express
+const express = require('express');
+const bodyParser = require('body-parser');
+const app = express();
+const port = 3000;
 
-import express from 'express';
-import comments from '../data/comments.js';
+// Parse request of content-type: application/json
+app.use(bodyParser.json());
 
-const router = express.Router();
+// Parse request of content-type: application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// GET /comments - responds with a json array of comments
-router.get('/', (req, res) => {
-  res.json(comments);
+// Simple route
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to the application.' });
 });
 
-// GET /comments/:id - responds with a single comment from the id in the path
-router.get('/:id', (req, res) => {
-  const found = comments.some(comment => comment.id === parseInt(req.params.id));
-  if (found) {
-    res.json(comments.filter(comment => comment.id === parseInt(req.params.id)));
-  } else {
-    res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
-  }
+// Set port, listen for requests
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}.`);
 });
 
-// POST /comments - creates a new comment for an article
-router.post('/', (req, res) => {
-  const newComment = {
-    id: comments.length + 1,
-    text: req.body.text,
-    articleId: req.body.articleId
-  };
-  if (!newComment.text || !newComment.articleId) {
-    return res.status(400).json({ msg: 'Please include a text and articleId' });
-  }
-  comments.push(newComment);
-  res.json(comments);
-});
-
-// PUT /comments/:id - updates a single comment by :id
-router.put('/:id', (req, res) => {
-  const found = comments.some(comment => comment.id === parseInt(req.params.id));
-  if (found) {
-    const updComment = req.body;
-    comments.forEach(comment => {
-      if (comment.id === parseInt(req.params.id)) {
-        comment.text = updComment.text ? updComment.text : comment.text;
-        comment.articleId = updComment.articleId ? updComment.articleId : comment.articleId;
-        res.json({ msg: 'Comment updated', comment });
-      }
+// Path: comments.js
+// Create a new comment
+app.post('/comments', (req, res) => {
+  if (!req.body.name || !req.body.comment) {
+    return res.status(400).json({
+      message: 'Please provide all required fields.'
     });
-  } else {
-    res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
   }
+
+  const comment = {
+    name: req.body.name,
+    comment: req.body.comment
+  };
+
+  db.collection('comments').insertOne(comment, (err) => {
+    if (err) {
+      return res.status(500).json({
+        message: err
+      });
+    }
+
+    res.json({
+      message: 'Your comment has been submitted successfully.'
+    });
+  });
 });
 
-export default router;
+// Path: comments.js
+// Retrieve all comments
+app.get('/comments', (req, res) => {
+  db.collection('comments').find({}).toArray((err, comments) => {
+    if (err) {
+      return res.status(500).json({
+        message: err
+      });
+    }
+
+    res.json(comments);
+  });
+});
+
+// Path: comments.js
+// Retrieve a single comment
+app.get('/comments/:id', (req, res) => {
+  const id = req.params.id;
+
+  db.collection('comments').findOne({ _id: new ObjectID(id) }, (err, comment) => {
+    if (err) {
+      return res.status(500).json({
+        message: err
+      });
+    }
+
+    res.json(comment);
+  });
+});
+
+// Path: comments.js
+// Update a comment
+app.put('/comments/:id', (req, res) => {
+  const id = req.params.id;
+
+  db.collection('comments').updateOne(
+    { _id: new ObjectID(id) },
+    { $set: { name: req.body.name, comment: req.body.comment } },    (err, result) => {
+      if (err) {
+        return res.status(500).json({
+          message: err
+        });
+      }
+
+      res.json({
+        message: 'Comment updated successfully.'
+      });
+    }
+  );
+});
